@@ -1,1 +1,19 @@
-{"compilerOptions":{"target":"ES2022","module":"CommonJS","moduleResolution":"Node","strict":true,"noUncheckedIndexedAccess":true,"exactOptionalPropertyTypes":true,"verbatimModuleSyntax":false,"declaration":true,"declarationMap":true,"sourceMap":true,"outDir":"dist/cjs","rootDir":"src","skipLibCheck":true},"include":["src/**/*.ts"]}
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist/cjs",
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "inlineSources": true
+  },
+  "include": ["src/**/*.ts"]
+}
