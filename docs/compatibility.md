@@ -15,3 +15,7 @@ Backoff is translated from `src/Polly.Core/Retry/RetryHelper.cs`; Retry orchestr
 ## Circuit Breaker
 
 References: `src/Polly.Core/CircuitBreaker/Controller/{CircuitStateController,AdvancedCircuitBehavior}.cs`. Sliding-window sampling uses completion times and removes samples exactly at the window boundary. Defaults: failure ratio 0.1, minimum throughput 100, 30-second window, 5-second break. Exactly one recovery probe is admitted. Epoch fences prevent stale completions and asynchronous generators from overriding a later transition or manual action. Cancellation does not affect health statistics. State providers and manual controls each bind to one built circuit; builder reuse without these controls constructs independent circuits.
+
+## Timeout
+
+Reference: `src/Polly.Core/Timeout/TimeoutResilienceStrategy.cs`. Default 30000ms. Static values must be finite and positive; generated finite values <= 0 disable timeout for that execution. NaN/Infinity is rejected. Timeout links a child signal, records the first abort cause, and awaits callback settlement. A callback that ignores cancellation delays return until it settles; its late result is discarded and timeout is returned, a documented Node adaptation. Caller cancellation retains its exact reason. Cleanup runs before return and after timeout-hook rejection.

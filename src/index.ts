@@ -13,3 +13,5 @@ export * from './circuit-breaker/options';
 export * from './circuit-breaker/state';
 export * from './circuit-breaker/control';
 export * from './circuit-breaker/strategy';
+export * from './timeout/options';
+export * from './timeout/strategy';
