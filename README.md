@@ -108,24 +108,49 @@ CI covers Node 22 and 24, including an isolated packed install and `.mts`/`.cts`
 
 Original code is [MIT](LICENSE). Translated backoff portions retain [BSD-3-Clause](licenses/Polly-BSD-3-Clause.txt) and attribution in [NOTICE](NOTICE).
 
-## Publishing to npm
+## Releases
 
-Publishing is manual. Use an npm account with access to the `@jcf-dev` scope and two-factor authentication enabled. For each new release, update `package.json` and `package-lock.json` to a new version; published versions cannot be reused.
+[GitHub Actions](https://github.com/jcf-dev/resilience-ts/actions/workflows/ci.yml) runs `npm run check` on Node 22 and 24 for pull requests and pushes to `main`. The checks cover formatting, types, all tests, the build and isolated packed consumers. Development and release tooling requires Node 22.14+ or Node 24.10+; the published runtime supports Node 22+.
 
-Run the checks from the repository root. They build the compiled package and verify isolated ESM, CommonJS and TypeScript consumers:
+After both CI jobs pass on `main`, semantic-release uses [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) to determine the next version:
+
+| Commit                                            | Release                                          |
+| ------------------------------------------------- | ------------------------------------------------ |
+| `fix: ...`                                        | Patch                                            |
+| `feat: ...`                                       | Minor                                            |
+| `feat!: ...` or a `BREAKING CHANGE:` footer       | Major                                            |
+| `docs: ...`, `chore: ...`, `ci: ...`, `test: ...` | No release unless they declare a breaking change |
+
+For squash merges, use a Conventional Commit as the pull request title. The release job stages the npm package, creates its `v<version>` Git tag and GitHub release with generated notes, and attaches the matching package tarball and staging receipt. Pull requests never release. The existing `v0.1.0` tag is the initial release baseline.
+
+Do not manually bump `package.json` or create release tags for this workflow. semantic-release updates the version in the package artifact; the source manifest's version is not the latest release indicator. Check [npm](https://www.npmjs.com/package/@jcf-dev/resilience-ts) for publicly installable versions. GitHub releases may still be awaiting npm approval.
+
+### Approve the staged npm package
+
+Following npm's [recommended stage-only publishing](https://docs.npmjs.com/staged-publishing/), CI cannot make packages public. Review the GitHub release's tarball, generated notes and `staging.json` receipt, then approve the stage in the npm website's **Staged Packages** tab using your 2FA/passkey. Alternatively, with npm 11.15+:
 
 ```sh
-npm ci
-npm run check
-npm publish --dry-run --access public --registry=https://registry.npmjs.org
+npm stage view <stage-id>
+npm stage download <stage-id>
+npm stage approve <stage-id>
 ```
 
-Commit the release changes and wait for the Node 22 and 24 CI checks to pass, then publish:
+Approval publishes the staged package to `latest`. Until approval, `npm install` continues to resolve the previous public version. npm versions are immutable; if a stage is rejected, fix the issue with a new release commit rather than reusing the version.
 
-```sh
-npm login --registry=https://registry.npmjs.org
-npm publish --access public --registry=https://registry.npmjs.org
-npm view @jcf-dev/resilience-ts version --registry=https://registry.npmjs.org
-```
+### npm trusted publisher
 
-Complete npm's browser or one-time-code verification when prompted. Keep the GitHub release version consistent with the npm version.
+The release job uses npm's [trusted publishing](https://docs.npmjs.com/trusted-publishers/) through GitHub OIDC, with no stored npm publishing token. Configure this connection in the package's [npm settings](https://www.npmjs.com/package/@jcf-dev/resilience-ts/access):
+
+| Setting              | Value                                             |
+| -------------------- | ------------------------------------------------- |
+| Publisher            | GitHub Actions                                    |
+| Organization or user | `jcf-dev`                                         |
+| Repository           | `resilience-ts`                                   |
+| Workflow filename    | `ci.yml`                                          |
+| Environment name     | `npm-publish`                                     |
+| Allow npm publish    | Disabled; stage-only publishing                   |
+| Allow npm dist-tag   | Disabled; this workflow releases only to `latest` |
+
+Set **Publishing access** to **Require two-factor authentication and disallow tokens**. Remove unused automation tokens. Trusted publishing continues to work with this restriction.
+
+GitHub's built-in `GITHUB_TOKEN` creates the tag and release. Only the release job receives `contents: write` and `id-token: write`; test jobs have read access. Release jobs run one at a time on GitHub-hosted runners, with package caching disabled. The `npm-publish` environment permits deployments only from `main`. The npm CLI is pinned in the lockfile and generates provenance automatically through OIDC from this public repository. Audit the trusted publisher periodically and keep release tags protected from unauthorized changes.

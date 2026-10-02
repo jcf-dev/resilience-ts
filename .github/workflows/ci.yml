@@ -1,4 +1,4 @@
-name: CI
+name: CI and Release
 on:
   push:
     branches: [main]
@@ -14,8 +14,8 @@ jobs:
       matrix:
         node: [22, 24]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
           cache: npm
@@ -26,3 +26,37 @@ jobs:
         with:
           name: resilience-ts-node-${{ matrix.node }}
           path: "*.tgz"
+  release:
+    name: Stage npm and create GitHub release
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    concurrency:
+      group: npm-release-main
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run check
+      - name: Stage release for maintainer approval
+        run: npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-release
+          path: release/
+          if-no-files-found: ignore

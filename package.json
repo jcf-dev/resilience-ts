@@ -4,6 +4,10 @@
   "description": "Composable resilience pipelines for Node: retry, circuit breaker, timeout, rate limiter, fallback and hedging",
   "type": "module",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "engines": {
     "node": ">=22"
   },
@@ -33,11 +37,15 @@
     "build": "node scripts/build.mjs",
     "format:check": "prettier --check .",
     "test:package": "node scripts/verify-package.mjs",
+    "release": "semantic-release",
     "check": "npm run format:check && npm run typecheck && npm test && npm run build && npm run test:package"
   },
   "devDependencies": {
     "@types/node": "22.19.15",
+    "conventional-changelog-conventionalcommits": "9.0.0",
+    "npm": "11.21.0",
     "prettier": "3.6.2",
+    "semantic-release": "25.0.9",
     "typescript": "5.9.3",
     "vitest": "4.1.11"
   },
