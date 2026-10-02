@@ -31,7 +31,12 @@ export class ResiliencePipelineBuilder<T> {
   }
   addCircuitBreaker(options: CircuitBreakerOptions<T> = {}): this {
     return this.addStrategy(
-      () => new CircuitBreakerStrategy(options, this.options.runtime),
+      () =>
+        new CircuitBreakerStrategy(
+          options,
+          this.options.runtime,
+          this.options.discardResult,
+        ),
     );
   }
   addTimeout(options: number | TimeoutOptions = {}): this {

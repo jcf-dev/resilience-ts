@@ -1,3 +1,4 @@
+import { StrategyLifetime } from "../core/cancellation";
 import type {
   Strategy,
   Runtime,
@@ -19,6 +20,10 @@ interface Branch<T> {
   settled: Promise<void>;
 }
 export class HedgingStrategy<T> implements Strategy<T> {
+  private readonly lifetime = new StrategyLifetime();
+  dispose(): void {
+    this.lifetime.dispose();
+  }
   private readonly maximum: number;
   private readonly delay: number;
   constructor(
@@ -32,6 +37,22 @@ export class HedgingStrategy<T> implements Strategy<T> {
       throw new RangeError("delayMs must be finite");
   }
   async execute(
+    next: OutcomeCallback<T>,
+    context: ResilienceContext,
+    callback: Callback<T>,
+  ): Promise<Outcome<T>> {
+    const execution = this.lifetime.begin(context.signal);
+    try {
+      return await this.executeCore(
+        next,
+        { ...context, signal: execution.signal },
+        callback,
+      );
+    } finally {
+      execution.close();
+    }
+  }
+  private async executeCore(
     next: OutcomeCallback<T>,
     context: ResilienceContext,
     callback: Callback<T>,
@@ -53,6 +74,7 @@ export class HedgingStrategy<T> implements Strategy<T> {
       wake: (() => void) | undefined,
       spawning = true,
       lastSpawn = this.runtime.nowMs();
+    let cancelWait: (() => void) | undefined;
     const notify = () => {
       version++;
       wake?.();
@@ -68,6 +90,7 @@ export class HedgingStrategy<T> implements Strategy<T> {
           );
     };
     const abort = () => {
+      cancelWait?.();
       if (!state.winner) state.cancelled = true;
       cancelOthers(state.winner);
       notify();
@@ -79,11 +102,15 @@ export class HedgingStrategy<T> implements Strategy<T> {
       try {
         await new Promise<void>((resolve) => {
           wake = resolve;
-          if (ms !== undefined) cancel = schedule(this.runtime, ms, resolve);
+          if (ms !== undefined) {
+            cancel = schedule(this.runtime, ms, resolve);
+            cancelWait = cancel;
+          }
           if (version !== observed) resolve();
         });
       } finally {
         wake = undefined;
+        cancelWait = undefined;
         cancel();
       }
     };

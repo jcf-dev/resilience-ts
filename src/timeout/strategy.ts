@@ -1,3 +1,4 @@
+import { StrategyLifetime } from "../core/cancellation";
 import type {
   Strategy,
   Runtime,
@@ -17,6 +18,10 @@ export class TimeoutRejectedError extends Error {
   }
 }
 export class TimeoutStrategy<T> implements Strategy<T> {
+  private readonly lifetime = new StrategyLifetime();
+  dispose(): void {
+    this.lifetime.dispose();
+  }
   private readonly options: TimeoutOptions;
   private readonly timeoutMs: number;
   constructor(
@@ -37,6 +42,22 @@ export class TimeoutStrategy<T> implements Strategy<T> {
     context: ResilienceContext,
     callback: Callback<T>,
   ): Promise<Outcome<T>> {
+    const execution = this.lifetime.begin(context.signal);
+    try {
+      return await this.executeCore(
+        next,
+        { ...context, signal: execution.signal },
+        callback,
+      );
+    } finally {
+      execution.close();
+    }
+  }
+  private async executeCore(
+    next: OutcomeCallback<T>,
+    context: ResilienceContext,
+    callback: Callback<T>,
+  ): Promise<Outcome<T>> {
     const ms =
       (await this.options.timeoutGenerator?.(context)) ?? this.timeoutMs;
     if (!Number.isFinite(ms))
@@ -47,14 +68,16 @@ export class TimeoutStrategy<T> implements Strategy<T> {
     const ctl = new AbortController();
     const timeoutError = new TimeoutRejectedError(ms);
     let cause: "caller" | "timeout" | undefined;
+    let cancel = () => {};
     const abort = () => {
+      cancel();
       if (cause === undefined) {
         cause = "caller";
         ctl.abort(context.signal.reason);
       }
     };
     context.signal.addEventListener("abort", abort, { once: true });
-    const cancel = schedule(this.runtime, ms, () => {
+    cancel = schedule(this.runtime, ms, () => {
       if (cause === undefined) {
         cause = "timeout";
         ctl.abort(timeoutError);

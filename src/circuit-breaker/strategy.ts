@@ -5,8 +5,9 @@ import type {
   ResilienceContext,
   Callback,
   Outcome,
+  DiscardResult,
 } from "../core/types";
-import { defaultShouldHandle } from "../core/outcome";
+import { defaultShouldHandle, discardAfter } from "../core/outcome";
 import { systemRuntime, count, duration } from "../core/runtime";
 import type { CircuitBreakerOptions } from "./options";
 import type { CircuitState } from "./state";
@@ -35,6 +36,7 @@ export class CircuitBreakerStrategy<T> implements Strategy<T> {
   constructor(
     private readonly options: CircuitBreakerOptions<T> = {},
     private readonly runtime: Runtime = systemRuntime,
+    private readonly discard?: DiscardResult<T>,
   ) {
     this.ratio = options.failureRatio ?? 0.1;
     if (!Number.isFinite(this.ratio) || this.ratio <= 0 || this.ratio > 1)
@@ -119,47 +121,39 @@ export class CircuitBreakerStrategy<T> implements Strategy<T> {
     admissionEpoch: number,
     probe: boolean,
   ): Promise<Outcome<T>> {
-    let outcome: Outcome<T>;
-    let handled: boolean;
+    let outcome: Outcome<T> | undefined;
     try {
       outcome = await next(context, callback);
-      handled = await (this.options.shouldHandle ?? defaultShouldHandle)({
+      if (context.signal.aborted) throw context.signal.reason;
+      const handled = await (this.options.shouldHandle ?? defaultShouldHandle)({
         outcome,
         context,
         attemptNumber: 0,
       });
-    } catch (error) {
-      if (probe && this.epoch === admissionEpoch) this.reopen();
-      throw error;
-    }
-    if (this.epoch !== admissionEpoch) return outcome;
-    if (context.signal.aborted) {
-      if (probe) this.reopen();
-      return outcome;
-    }
-    const now = this.runtime.nowMs();
-    this.samples = this.samples.filter((s) => s.at > now - this.window);
-    this.samples.push({ at: now, handled });
-    if (probe && !handled) {
-      this.state = "closed";
-      this.epoch++;
-      this.samples = [];
-      await this.options.onClosed?.({ context, outcome, manual: false });
-      return outcome;
-    }
-    const failures = this.samples.filter((s) => s.handled).length;
-    if (
-      handled &&
-      (probe ||
-        (this.samples.length >= this.minimum &&
-          failures / this.samples.length >= this.ratio))
-    ) {
-      this.reopen();
-      const openingEpoch = this.epoch;
-      if (this.options.breakDurationGenerator) {
-        let generated: number;
-        try {
-          generated = duration(
+      if (context.signal.aborted) throw context.signal.reason;
+      if (this.epoch !== admissionEpoch) return outcome;
+      const now = this.runtime.nowMs();
+      this.samples = this.samples.filter((s) => s.at > now - this.window);
+      this.samples.push({ at: now, handled });
+      if (probe && !handled) {
+        this.state = "closed";
+        this.epoch++;
+        this.samples = [];
+        await this.options.onClosed?.({ context, outcome, manual: false });
+        if (context.signal.aborted) throw context.signal.reason;
+        return outcome;
+      }
+      const failures = this.samples.filter((s) => s.handled).length;
+      if (
+        handled &&
+        (probe ||
+          (this.samples.length >= this.minimum &&
+            failures / this.samples.length >= this.ratio))
+      ) {
+        this.reopen();
+        const openingEpoch = this.epoch;
+        if (this.options.breakDurationGenerator) {
+          const generated = duration(
             await this.options.breakDurationGenerator({
               context,
               outcome,
@@ -167,14 +161,21 @@ export class CircuitBreakerStrategy<T> implements Strategy<T> {
             }),
             "Generated breakDurationMs",
           );
-        } catch (error) {
-          throw error;
+          if (context.signal.aborted) throw context.signal.reason;
+          if (this.epoch !== openingEpoch) return outcome;
+          this.openUntil = now + generated;
         }
-        if (this.epoch !== openingEpoch) return outcome;
-        this.openUntil = now + generated;
+        await this.options.onOpened?.({ context, outcome, manual: false });
+        if (context.signal.aborted) throw context.signal.reason;
       }
-      await this.options.onOpened?.({ context, outcome, manual: false });
+      return outcome;
+    } catch (error) {
+      if (probe && this.epoch === admissionEpoch) this.reopen();
+      if (outcome)
+        await discardAfter(outcome, context, this.discard, async () => {
+          throw error;
+        });
+      throw error;
     }
-    return outcome;
   }
 }

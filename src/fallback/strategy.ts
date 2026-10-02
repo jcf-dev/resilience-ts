@@ -27,12 +27,18 @@ export class FallbackStrategy<T> implements Strategy<T> {
   ): Promise<Outcome<T>> {
     const outcome = await next(context, callback);
     const args = { outcome, context, attemptNumber: 0 };
-    if (
-      context.signal.aborted ||
-      !(await (this.options.shouldHandle ?? defaultShouldHandle)(args)) ||
-      context.signal.aborted
-    )
-      return outcome;
+    let handled: boolean;
+    try {
+      if (context.signal.aborted) throw context.signal.reason;
+      handled = await (this.options.shouldHandle ?? defaultShouldHandle)(args);
+      if (context.signal.aborted) throw context.signal.reason;
+    } catch (error) {
+      await discardAfter(outcome, context, this.discard, async () => {
+        throw error;
+      });
+      throw error;
+    }
+    if (!handled) return outcome;
     await discardAfter(outcome, context, this.discard, async () => {
       await this.options.onFallback?.(args);
     });

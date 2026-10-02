@@ -63,9 +63,9 @@ Circuit Breaker and Rate Limiter state belongs to each built pipeline and stays 
 
 Callbacks receive an `AbortSignal`; respect it in I/O and cleanup. Timeout and Hedging **await callback settlement** after cancellation. A callback that ignores the signal can delay return indefinitely. Caller cancellation keeps its exact reason. Static timeout must be finite and positive; a finite generated timeout <= 0 disables the timeout for that execution.
 
-Use `new ResiliencePipelineBuilder<T>({ discardResult: async (value, context) => { /* release value */ } })` when results own resources. Retry cleans handled retry results, Fallback cleans replaced results, Timeout cleans canceled late results, and Hedging cleans losing results. Cleanup is awaited, including after hook failures. Multiple hook/cleanup failures are preserved in `AggregateError`. Delivered results remain caller-owned.
+Use `new ResiliencePipelineBuilder<T>({ discardResult: async (value, context) => { /* release value */ } })` when results own resources. Retry cleans handled retry results, Fallback cleans replaced results, Timeout cleans canceled late results, and Hedging cleans losing results. Cleanup is awaited, including when predicates, generators or transition hooks fail after a callback produced a result. Multiple hook/cleanup failures are preserved in `AggregateError`. Delivered results remain caller-owned.
 
-`dispose()` rejects new calls and disposes owned limiter adapters, including queued acquisitions. In-flight callbacks finish. All duration options use milliseconds; long finite waits are chunked to avoid Node timer overflow.
+`dispose()` rejects new calls, cancels strategy-owned Retry/Timeout/Hedging waits and signals, and disposes owned limiter adapters, including queued acquisitions. It starts no further retries or hedge branches. In-flight callbacks are still awaited; disposal does not detach them. All duration options use milliseconds; long finite waits are chunked to avoid Node timer overflow.
 
 ## Permit adapters
 
