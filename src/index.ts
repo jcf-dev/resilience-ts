@@ -19,3 +19,5 @@ export * from './rate-limiter/types';
 export * from './rate-limiter/concurrency';
 export * from './rate-limiter/token-bucket';
 export * from './rate-limiter/strategy';
+export * from './fallback/options';
+export * from './fallback/strategy';

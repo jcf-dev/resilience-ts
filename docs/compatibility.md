@@ -23,3 +23,7 @@ Reference: `src/Polly.Core/Timeout/TimeoutResilienceStrategy.cs`. Default 30000m
 ## Rate Limiter
 
 Reference: `src/Polly.RateLimiting/RateLimiterResilienceStrategy.cs`. Node adapters replace .NET System.Threading.RateLimiting. The default owns a concurrency limiter with 1000 permits and no queue. Provided adapters are caller-owned unless ownsLimiter is true. Bounded FIFO and LIFO queues cancel aborted waiters; full LIFO evicts the oldest waiter. Leases release idempotently and always release after rejection hooks or callback errors. Token buckets refill by elapsed monotonic periods, cap bursts, and own timers only while waiters exist. Pipeline disposal rejects queued work through owned adapters; active callbacks finish.
+
+## Fallback
+
+Reference: `src/Polly.Core/Fallback/FallbackResilienceStrategy.cs`. Handled outcomes are replaced once. Cancellation suppresses fallback; action or hook failure does not recursively invoke this strategy. An outer Fallback runs once after an inner Retry exhausts. Discarded results are cleaned before replacement.
