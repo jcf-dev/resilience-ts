@@ -9,3 +9,7 @@ export * from './builder';
 export * from './retry/options';
 export * from './retry/policy';
 export * from './retry/strategy';
+export * from './circuit-breaker/options';
+export * from './circuit-breaker/state';
+export * from './circuit-breaker/control';
+export * from './circuit-breaker/strategy';
