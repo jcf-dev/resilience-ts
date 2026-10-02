@@ -6,3 +6,6 @@ export * from './core/predicate';
 export * from './core/pipeline';
 export * from './core/errors';
 export * from './builder';
+export * from './retry/options';
+export * from './retry/policy';
+export * from './retry/strategy';
