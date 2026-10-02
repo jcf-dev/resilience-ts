@@ -27,3 +27,7 @@ Reference: `src/Polly.RateLimiting/RateLimiterResilienceStrategy.cs`. Node adapt
 ## Fallback
 
 Reference: `src/Polly.Core/Fallback/FallbackResilienceStrategy.cs`. Handled outcomes are replaced once. Cancellation suppresses fallback; action or hook failure does not recursively invoke this strategy. An outer Fallback runs once after an inner Retry exhausts. Discarded results are cleaned before replacement.
+
+## Hedging
+
+References: `src/Polly.Core/Hedging/{HedgingResilienceStrategy,Controller/HedgingExecutionContext}.cs`. Default one additional attempt and 2000ms latency delay. Zero permits immediate parallel spawning; negative delays run sequentially. A handled fast failure bypasses the positive latency wait. The first acceptable outcome commits selection; if all are handled, the primary outcome is retained. Alternate callbacks traverse inner policies. Branches have independent signals and shallow property maps. Losing callbacks and pending hooks/predicates are observed and awaited; discarded results are cleaned once. When losing-result cleanup fails, the selected result can no longer be delivered and is also cleaned. Multiple failures use AggregateError.

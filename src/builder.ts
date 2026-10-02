@@ -1,3 +1,5 @@
+import type { HedgingOptions } from './hedging/options';
+import { HedgingStrategy } from './hedging/strategy';
 import type { FallbackOptions } from './fallback/options';
 import { FallbackStrategy } from './fallback/strategy';
 import type { RateLimiterOptions } from './rate-limiter/types';
@@ -19,5 +21,6 @@ export class ResiliencePipelineBuilder<T> {
  addTimeout(options:number|TimeoutOptions={}):this {return this.addStrategy(()=>new TimeoutStrategy(options,this.options.runtime,this.options.discardResult))}
  addRateLimiter(options:RateLimiterOptions={}):this {return this.addStrategy(()=>new RateLimiterStrategy<T>(options))}
  addFallback(options:FallbackOptions<T>):this {return this.addStrategy(()=>new FallbackStrategy(options,this.options.discardResult))}
+ addHedging(options:HedgingOptions<T>={}):this {return this.addStrategy(()=>new HedgingStrategy(options,this.options.runtime,this.options.discardResult))}
  build():ResiliencePipeline<T> {return new ResiliencePipeline(this.factories.map(factory=>factory()))}
 }

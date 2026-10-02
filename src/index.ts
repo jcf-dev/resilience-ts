@@ -21,3 +21,5 @@ export * from './rate-limiter/token-bucket';
 export * from './rate-limiter/strategy';
 export * from './fallback/options';
 export * from './fallback/strategy';
+export * from './hedging/options';
+export * from './hedging/strategy';
