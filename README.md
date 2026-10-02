@@ -4,14 +4,17 @@ Composable resilience pipelines for Node 22+ and TypeScript, inspired by Polly. 
 
 ## Install
 
-Download the public release artifact, then install it locally:
+Install from [npm](https://www.npmjs.com/package/@jcf-dev/resilience-ts). Requires Node 22 or later.
 
 ```sh
-gh release download v0.1.0 --repo jcf-dev/resilience-ts --pattern 'jcf-dev-resilience-ts-0.1.0.tgz'
-npm install ./jcf-dev-resilience-ts-0.1.0.tgz
+npm install @jcf-dev/resilience-ts
 ```
 
-No npm registry publication is performed by this repository.
+To pin the first release:
+
+```sh
+npm install @jcf-dev/resilience-ts@0.1.0
+```
 
 ## Use
 
@@ -104,3 +107,25 @@ node examples/all.mjs
 CI covers Node 22 and 24, including an isolated packed install and `.mts`/`.cts` type checking. See [compatibility](docs/compatibility.md) for Polly 8.8.0 source mappings and intentional Node adaptations. This is independent of App vNext and does not implement .NET DI, ValueTask, telemetry or context pooling.
 
 Original code is [MIT](LICENSE). Translated backoff portions retain [BSD-3-Clause](licenses/Polly-BSD-3-Clause.txt) and attribution in [NOTICE](NOTICE).
+
+## Publishing to npm
+
+Publishing is manual. Use an npm account with access to the `@jcf-dev` scope and two-factor authentication enabled. For each new release, update `package.json` and `package-lock.json` to a new version; published versions cannot be reused.
+
+Run the checks from the repository root. They build the compiled package and verify isolated ESM, CommonJS and TypeScript consumers:
+
+```sh
+npm ci
+npm run check
+npm publish --dry-run --access public --registry=https://registry.npmjs.org
+```
+
+Commit the release changes and wait for the Node 22 and 24 CI checks to pass, then publish:
+
+```sh
+npm login --registry=https://registry.npmjs.org
+npm publish --access public --registry=https://registry.npmjs.org
+npm view @jcf-dev/resilience-ts version --registry=https://registry.npmjs.org
+```
+
+Complete npm's browser or one-time-code verification when prompted. Keep the GitHub release version consistent with the npm version.
