@@ -1,0 +1,6 @@
+resilience-ts original code is licensed under MIT.
+This independent implementation references Polly 8.8.0, commit
+9ad5ae9b4ff9beb4321b0762249ce173b984f817, Copyright (c) 2015-2025 App vNext.
+Translated retry backoff portions retain BSD-3-Clause; see licenses/Polly-BSD-3-Clause.txt.
+Decorrelated jitter V2 formula credit: George Polevoy; scaling adaptations: Reisenberger.
+This project is independent and is not endorsed by App vNext or Polly contributors.
