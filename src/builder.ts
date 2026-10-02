@@ -1,3 +1,5 @@
+import type { RateLimiterOptions } from './rate-limiter/types';
+import { RateLimiterStrategy } from './rate-limiter/strategy';
 import type { TimeoutOptions } from './timeout/options';
 import { TimeoutStrategy } from './timeout/strategy';
 import type { CircuitBreakerOptions } from './circuit-breaker/options';
@@ -13,5 +15,6 @@ export class ResiliencePipelineBuilder<T> {
  addRetry(options:RetryOptions<T>={}):this {return this.addStrategy(()=>new RetryStrategy(options,this.options.runtime,this.options.discardResult))}
  addCircuitBreaker(options:CircuitBreakerOptions<T>={}):this {return this.addStrategy(()=>new CircuitBreakerStrategy(options,this.options.runtime))}
  addTimeout(options:number|TimeoutOptions={}):this {return this.addStrategy(()=>new TimeoutStrategy(options,this.options.runtime,this.options.discardResult))}
+ addRateLimiter(options:RateLimiterOptions={}):this {return this.addStrategy(()=>new RateLimiterStrategy<T>(options))}
  build():ResiliencePipeline<T> {return new ResiliencePipeline(this.factories.map(factory=>factory()))}
 }

@@ -15,3 +15,7 @@ export * from './circuit-breaker/control';
 export * from './circuit-breaker/strategy';
 export * from './timeout/options';
 export * from './timeout/strategy';
+export * from './rate-limiter/types';
+export * from './rate-limiter/concurrency';
+export * from './rate-limiter/token-bucket';
+export * from './rate-limiter/strategy';

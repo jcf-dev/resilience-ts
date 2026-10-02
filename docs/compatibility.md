@@ -19,3 +19,7 @@ References: `src/Polly.Core/CircuitBreaker/Controller/{CircuitStateController,Ad
 ## Timeout
 
 Reference: `src/Polly.Core/Timeout/TimeoutResilienceStrategy.cs`. Default 30000ms. Static values must be finite and positive; generated finite values <= 0 disable timeout for that execution. NaN/Infinity is rejected. Timeout links a child signal, records the first abort cause, and awaits callback settlement. A callback that ignores cancellation delays return until it settles; its late result is discarded and timeout is returned, a documented Node adaptation. Caller cancellation retains its exact reason. Cleanup runs before return and after timeout-hook rejection.
+
+## Rate Limiter
+
+Reference: `src/Polly.RateLimiting/RateLimiterResilienceStrategy.cs`. Node adapters replace .NET System.Threading.RateLimiting. The default owns a concurrency limiter with 1000 permits and no queue. Provided adapters are caller-owned unless ownsLimiter is true. Bounded FIFO and LIFO queues cancel aborted waiters; full LIFO evicts the oldest waiter. Leases release idempotently and always release after rejection hooks or callback errors. Token buckets refill by elapsed monotonic periods, cap bursts, and own timers only while waiters exist. Pipeline disposal rejects queued work through owned adapters; active callbacks finish.
